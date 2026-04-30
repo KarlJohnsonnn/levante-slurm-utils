@@ -29,10 +29,10 @@ In short: **scale only by evidence, not by guessing**.
 
 ### Before requesting more memory or workers check the following:
 
-1. Increase stride / downsampling.
+1. Increase stride / downsampling (temporal, spatial, bin, ...) dimensions.
 2. Reduce histogram bin count (e.g. `96 -> 64 -> 48`).
 3. Process one model run at a time.
-4. Cache reduced intermediates to NetCDF/Zarr and reuse them.
+4. Create reduced intermediates (e.g. subset of variables) to NetCDF/Zarr and reuse them.
 5. Switch to `float32` where scientific accuracy allows.
 6. Scale cluster resources only if full-resolution output is required.
 
