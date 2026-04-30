@@ -6,7 +6,7 @@ Slurm-backed Dask clusters on DKRZ Levante-style systems.
 
 ## HPC Resource Usage Philosophy
 
-**Use only as many resources as the data and goal actually require.**
+**Use only as much resources as the data actually require.**
 
 1. Start with the smallest faithful version of the problem (reduced domain/time/diagnostics).
 2. Keep data lazy and chunked until you have reduced it.
@@ -14,9 +14,9 @@ Slurm-backed Dask clusters on DKRZ Levante-style systems.
 4. Measure bottlenecks first; optimize second.
 5. Increase resources only after measurement shows a real need.
 
-In short: **scale by evidence, not by guesswork**.
+In short: **scale only by evidence, not by guessing**.
 
-### Glossary
+### Outline
 
 | Term | Meaning |
 |---|---|
@@ -27,9 +27,7 @@ In short: **scale by evidence, not by guesswork**.
 | **Scale up** | Request more CPUs, RAM, or nodes. |
 | **Profile** | Measure where runtime is spent (CPU, memory, I/O, scheduler overhead). |
 
-### Resource Escalation Checklist
-
-Before requesting more memory or workers:
+### Before requesting more memory or workers check the following:
 
 1. Increase stride / downsampling.
 2. Reduce histogram bin count (e.g. `96 -> 64 -> 48`).
@@ -50,6 +48,8 @@ Core chunk-sizing helpers need `dask` and `xarray`. Starting clusters needs
 
 ## Resource Sizing
 
+The sizing heuristic is intentionally simple and should be treated as a starting point.
+
 ```bash
 levante-slurm-size --time-steps 300 --experiments 8 --stations 3
 levante-slurm-size --time-steps 1200 --experiments 80 --stations 5 --json
@@ -67,8 +67,6 @@ n_nodes, n_cpu, mem_gb, n_workers, walltime = calculate_optimal_scaling(
 )
 ```
 
-The sizing heuristic is intentionally simple. It mirrors the PolarCAP workload
-tiers and should be treated as a starting point, not site policy.
 
 ## Dask Cluster
 
@@ -97,8 +95,8 @@ cluster, client = allocate_resources(
 cluster.scale(4)
 ```
 
-Set `account`, `conda_env`, and `python` for your project/user. Defaults are not
-hidden in code.
+Set `account`, `conda_env`, and `python` for your project/user.
+
 
 ## Chunking Helpers
 
@@ -119,5 +117,3 @@ python -m pytest
 levante-slurm-size --help
 ```
 
-Tests do not require real Slurm. Slurm-specific cluster creation should be
-tested on Levante with a small allocation before long production runs.
