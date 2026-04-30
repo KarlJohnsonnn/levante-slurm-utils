@@ -3,9 +3,6 @@
 Small Python package for sizing Dask workloads and starting local or
 Slurm-backed Dask clusters on DKRZ Levante-style systems.
 
-This is extracted from `polarcap_analysis/src/utilities/compute_fabric.py`.
-Hard-coded user paths, conda env names, and billing accounts are now explicit
-parameters.
 
 ## HPC Resource Usage Philosophy
 
