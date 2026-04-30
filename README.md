@@ -7,6 +7,40 @@ This is extracted from `polarcap_analysis/src/utilities/compute_fabric.py`.
 Hard-coded user paths, conda env names, and billing accounts are now explicit
 parameters.
 
+## HPC Resource Usage Philosophy
+
+**Use only as many resources as the data and goal actually require.**
+
+1. Start with the smallest faithful version of the problem (reduced domain/time/diagnostics).
+2. Keep data lazy and chunked until you have reduced it.
+3. Compute only what you need for the next step (e.g. a histogram, not the full raw volume).
+4. Measure bottlenecks first; optimize second.
+5. Increase resources only after measurement shows a real need.
+
+In short: **scale by evidence, not by guesswork**.
+
+### Glossary
+
+| Term | Meaning |
+|---|---|
+| **Data movement** | Copying large arrays between disk, RAM, workers, or nodes. Often slower than math itself. |
+| **Lazy array** | Data is not loaded yet; Python stores a plan of operations first. |
+| **Chunking** | Splitting big arrays into smaller blocks so processing fits memory. |
+| **Materialize** | Actually load/compute the array now (`.compute()` or `.values`). |
+| **Scale up** | Request more CPUs, RAM, or nodes. |
+| **Profile** | Measure where runtime is spent (CPU, memory, I/O, scheduler overhead). |
+
+### Resource Escalation Checklist
+
+Before requesting more memory or workers:
+
+1. Increase stride / downsampling.
+2. Reduce histogram bin count (e.g. `96 -> 64 -> 48`).
+3. Process one model run at a time.
+4. Cache reduced intermediates to NetCDF/Zarr and reuse them.
+5. Switch to `float32` where scientific accuracy allows.
+6. Scale cluster resources only if full-resolution output is required.
+
 ## Install
 
 ```bash
