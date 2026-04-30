@@ -1,0 +1,10 @@
+dask[array]>=2024.1
+xarray>=2024.1
+
+[distributed]
+dask[distributed]>=2024.1
+dask-jobqueue>=0.8
+psutil>=5.9
+
+[test]
+pytest>=8

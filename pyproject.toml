@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "levante-slurm-utils"
+version = "0.1.0"
+description = "Small Dask and Slurm sizing helpers for Levante workflows."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "dask[array]>=2024.1",
+  "xarray>=2024.1",
+]
+
+[project.optional-dependencies]
+distributed = ["dask[distributed]>=2024.1", "dask-jobqueue>=0.8", "psutil>=5.9"]
+test = ["pytest>=8"]
+
+[project.scripts]
+levante-slurm-size = "levante_slurm_utils.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

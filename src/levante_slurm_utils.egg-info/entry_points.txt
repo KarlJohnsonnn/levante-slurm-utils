@@ -1,0 +1,2 @@
+[console_scripts]
+levante-slurm-size = levante_slurm_utils.cli:main

@@ -1,0 +1,92 @@
+# Levante Slurm Utils
+
+Small Python package for sizing Dask workloads and starting local or
+Slurm-backed Dask clusters on DKRZ Levante-style systems.
+
+This is extracted from `polarcap_analysis/src/utilities/compute_fabric.py`.
+Hard-coded user paths, conda env names, and billing accounts are now explicit
+parameters.
+
+## Install
+
+```bash
+python -m pip install -e '.[distributed,test]'
+```
+
+Core chunk-sizing helpers need `dask` and `xarray`. Starting clusters needs
+`dask[distributed]`; Slurm mode also needs `dask-jobqueue` and `sbatch` on
+`PATH`.
+
+## Resource Sizing
+
+```bash
+levante-slurm-size --time-steps 300 --experiments 8 --stations 3
+levante-slurm-size --time-steps 1200 --experiments 80 --stations 5 --json
+```
+
+Python API:
+
+```python
+from levante_slurm_utils import calculate_optimal_scaling
+
+n_nodes, n_cpu, mem_gb, n_workers, walltime = calculate_optimal_scaling(
+    n_time_steps=300,
+    n_experiments=8,
+    n_stations=3,
+)
+```
+
+The sizing heuristic is intentionally simple. It mirrors the PolarCAP workload
+tiers and should be treated as a starting point, not site policy.
+
+## Dask Cluster
+
+Local fallback works on laptops and CI when `sbatch` is absent:
+
+```python
+from levante_slurm_utils import allocate_resources
+
+cluster, client = allocate_resources(n_cpu=8, n_jobs=1, m=16, port=None)
+```
+
+On Levante:
+
+```python
+cluster, client = allocate_resources(
+    n_cpu=128,
+    n_jobs=2,
+    m=128,
+    walltime="06:00:00",
+    part="compute",
+    account="bb1234",
+    conda_env="my_env",
+    python="/home/b/<user>/.conda/envs/my_env/bin/python",
+    log_dir="./logs",
+)
+cluster.scale(4)
+```
+
+Set `account`, `conda_env`, and `python` for your project/user. Defaults are not
+hidden in code.
+
+## Chunking Helpers
+
+```python
+from levante_slurm_utils import auto_chunk_dataset, describe_chunk_plan
+
+ds, chunks = auto_chunk_dataset(ds, min_chunk_mb=64, max_chunk_mb=512)
+print(describe_chunk_plan(ds, chunks))
+```
+
+`auto_chunk_dataset` uses active Dask worker memory if a client exists,
+otherwise local available memory.
+
+## Tests
+
+```bash
+python -m pytest
+levante-slurm-size --help
+```
+
+Tests do not require real Slurm. Slurm-specific cluster creation should be
+tested on Levante with a small allocation before long production runs.
