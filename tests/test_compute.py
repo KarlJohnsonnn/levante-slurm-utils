@@ -11,8 +11,10 @@ import xarray as xr
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from levante_slurm_utils import (  # noqa: E402
+    DaskProfiler,
     auto_chunk_dataset,
     calculate_optimal_scaling,
+    dask_dashboard_versions,
     describe_chunk_plan,
     recommend_target_chunk_mb,
 )
@@ -50,9 +52,18 @@ def test_allocate_local_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
     original_which = shutil.which
     monkeypatch.setattr(shutil, "which", lambda name: None if name == "sbatch" else original_which(name))
 
-    cluster, client = allocate_resources(n_cpu=1, n_jobs=1, m=1, port=None)
+    cluster, client = allocate_resources(n_cpu=1, n_jobs=1, m=1, port=None, min_worker_memory_gb=1)
     try:
         assert len(client.scheduler_info()["workers"]) == 1
     finally:
         client.close()
         cluster.close()
+
+
+def test_profiler_disabled_and_versions() -> None:
+    with DaskProfiler("disabled", enabled=False) as prof:
+        with prof.phase("noop"):
+            pass
+
+    assert prof.artifacts is None
+    assert "dask" in dask_dashboard_versions()
