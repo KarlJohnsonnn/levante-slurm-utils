@@ -17,6 +17,8 @@ process larger files with measured resources instead of repeated kernel deaths.
   - [Resource sizing](#resource-sizing)
   - [Dask cluster](#dask-cluster)
   - [Chunking helpers](#chunking-helpers)
+  - [Profiling](#profiling)
+  - [Example: multiple COSMO-SPECS 3D NetCDF files](#example-multiple-cosmo-specs-3d-netcdf-files)
 - [Reference](#reference)
   - [Resource-use philosophy](#resource-use-philosophy)
 
@@ -126,6 +128,75 @@ print(describe_chunk_plan(ds, chunks))
 
 `auto_chunk_dataset` uses active Dask worker memory if a client exists,
 otherwise local available memory.
+
+### Profiling
+
+Use `DaskProfiler` around notebook or batch phases when the dashboard is idle
+or resource use is unclear:
+
+```python
+import xarray as xr
+from levante_slurm_utils import DaskProfiler
+
+with DaskProfiler("my_run", output_dir="dask_profile") as prof:
+    with prof.phase("open"):
+        ds = xr.open_dataset("my_run.nc", chunks={"time": 4})
+    with prof.phase("compute"):
+        out = ds["q"].mean("time").compute()
+```
+
+The profiler writes phase timings, scheduler snapshots, task stream JSON, memory
+CSV, a Dask performance report, and raw `Client.profile` JSON. These files are
+often more robust than clicking the dashboard `/profile` page, which can fail
+with some `distributed`/`bokeh` version combinations.
+
+Serve HTML reports instead of opening remote files directly.
+
+On Levante:
+
+```bash
+cd dask_profile
+python -m http.server 8899
+```
+
+On your local machine:
+
+```bash
+ssh -L 8899:localhost:8899 levante
+```
+
+Then open `http://localhost:8899/` locally.
+
+### Example: multiple COSMO-SPECS 3D NetCDF files
+
+For multiple COSMO-SPECS 3D output files, chunk at open time. Rechunking after
+concatenating can already have created very large source-read tasks.
+
+```python
+datasets = [
+    xr.open_dataset(path, chunks={"time": 4})[["nf", "nw", "rho", "dz"]]
+    for path in files
+]
+ds = xr.concat(datasets, dim="expname")
+```
+
+Observed on an aerial COSMO-SPECS workload:
+
+| Setup | Finding |
+|---|---|
+| No open-time chunking | Source tasks were about `4.3 GiB`; plan-view compute took about `255 s`. |
+| `chunks={"time": 4}` | Source tasks dropped below `40 MiB`; same debug compute took about `15 s`. |
+| 2 workers, full stride | About `220 s`; transfer was low and memory stayed below `2 GiB`. |
+| 8 workers, same data | About `169 s`; faster, but transfer and summed compute overhead grew. |
+| 8 workers, more members | Workers stayed busy; memory stayed below `17 GiB`; bottleneck was NetCDF read/decode and array work. |
+
+Treat `time=4` as a starting point, not a rule. Aim for heavy source tasks of
+roughly `50-250 MiB`. Try `time=2` for larger domains or memory spikes; try
+`time=8` when tasks are too small and scheduler overhead dominates.
+
+Scale workers only after chunking is controlled. More ensemble members create
+more independent tasks, so 8 workers can pay off there. For smaller member sets,
+4 workers may be a better balance than 8.
 
 ## Reference
 
